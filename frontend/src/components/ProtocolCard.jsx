@@ -26,7 +26,7 @@ export default function ProtocolCard({ protocol }) {
       </p>
 
       {/* Footer */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center">
             <span className="text-white text-sm font-bold">{(protocol.user?.name || 'U')[0].toUpperCase()}</span>

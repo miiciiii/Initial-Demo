@@ -13,7 +13,7 @@ function AppLayout() {
   return (
     <div className="min-h-screen flex">
       <Sidebar />
-      <main className="flex-1 min-w-0 lg:ml-64">
+      <main className="flex-1 min-w-0 lg:ml-64 pt-14 lg:pt-0">
         <div className="px-5 py-8 flex gap-4 items-start">
           <div className="flex-1 min-w-0">
             <Routes>

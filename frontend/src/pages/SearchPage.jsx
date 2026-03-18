@@ -11,37 +11,68 @@ export default function SearchPage() {
   const [results, setResults] = useState({ protocols: [], threads: [] })
   const [loading, setLoading] = useState(false)
   const [sort, setSort] = useState('recent')
+  const [activeTag, setActiveTag] = useState(null)
+  const [availableTags, setAvailableTags] = useState([])
   const debounceRef = useRef(null)
 
-  const doSearch = async (q, s) => {
-    if (!q.trim()) { setResults({ protocols: [], threads: [] }); return }
+  const doSearch = async (q, s, tag = null) => {
+    if (!q.trim()) {
+      setResults({ protocols: [], threads: [] })
+      setAvailableTags([])
+      return
+    }
     setLoading(true)
     try {
-      const res = await api.get('/search', { params: { q, sort: s } })
+      const params = { q, sort: s }
+      if (tag) params.tags = tag
+      const res = await api.get('/search', { params })
       const data = res.data.data
-      setResults({
-        protocols: (data.protocols || []).map(h => h.document),
-        threads: (data.threads || []).map(h => h.document),
-      })
-    } catch { setResults({ protocols: [], threads: [] }) }
-    finally { setLoading(false) }
+      const protocols = (data.protocols || []).map(h => h.document)
+      const threads = (data.threads || []).map(h => h.document)
+      setResults({ protocols, threads })
+      // Only refresh available tags on unfiltered searches so the tag list stays stable
+      if (!tag) {
+        const tags = [...new Set([
+          ...protocols.flatMap(p => p.tags || []),
+          ...threads.flatMap(t => t.tags || []),
+        ])]
+        setAvailableTags(tags)
+      }
+    } catch {
+      setResults({ protocols: [], threads: [] })
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
     const q = searchParams.get('q') || ''
     setQuery(q)
+    setActiveTag(null)
+    setAvailableTags([])
     doSearch(q, sort)
   }, [searchParams])
 
   const handleInput = (e) => {
     const val = e.target.value
     setQuery(val)
+    setActiveTag(null)
     setSearchParams(val ? { q: val } : {})
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => doSearch(val, sort), 300)
   }
 
-  const handleSort = (s) => { setSort(s); doSearch(query, s) }
+  const handleSort = (s) => {
+    setSort(s)
+    doSearch(query, s, activeTag)
+  }
+
+  const handleTag = (tag) => {
+    const next = activeTag === tag ? null : tag
+    setActiveTag(next)
+    doSearch(query, sort, next)
+  }
+
   const total = results.protocols.length + results.threads.length
 
   return (
@@ -65,8 +96,8 @@ export default function SearchPage() {
       </GlassCard>
 
       {/* Sort pills */}
-      <div className="flex gap-1.5">
-        {[['recent','Recent'],['rated','Top Rated'],['upvoted','Most Upvoted']].map(([val, label]) => (
+      <div className="flex gap-1.5 flex-wrap">
+        {[['recent', 'Recent'], ['rated', 'Top Rated'], ['upvoted', 'Most Upvoted']].map(([val, label]) => (
           <button key={val} onClick={() => handleSort(val)}
             className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-150 ${sort === val ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white/70 backdrop-blur-sm border border-slate-200/60 text-slate-500 hover:bg-white/90 hover:text-slate-800'}`}>
             {label}
@@ -74,9 +105,33 @@ export default function SearchPage() {
         ))}
       </div>
 
+      {/* Tag filter pills */}
+      {!loading && query && availableTags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 items-center">
+          <span className="text-xs text-slate-400 mr-0.5">Tag:</span>
+          {availableTags.map(tag => (
+            <button key={tag} onClick={() => handleTag(tag)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all duration-150 ${activeTag === tag ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white/70 backdrop-blur-sm border border-slate-200/60 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200/60'}`}>
+              {tag}
+            </button>
+          ))}
+          {activeTag && (
+            <button onClick={() => handleTag(activeTag)}
+              className="px-2 py-1 rounded-lg text-xs text-slate-400 hover:text-slate-600 transition-colors">
+              ✕ clear
+            </button>
+          )}
+        </div>
+      )}
+
       {loading ? <SearchSkeleton /> : (
         <>
-          {query && <p className="text-xs text-slate-400 px-1">{total} result{total !== 1 ? 's' : ''} for "<span className="text-slate-600 font-medium">{query}</span>"</p>}
+          {query && (
+            <p className="text-xs text-slate-400 px-1">
+              {total} result{total !== 1 ? 's' : ''} for "<span className="text-slate-600 font-medium">{query}</span>"
+              {activeTag && <> tagged <span className="text-indigo-600 font-medium">{activeTag}</span></>}
+            </p>
+          )}
 
           {results.protocols.length > 0 && (
             <div className="space-y-2">
@@ -90,7 +145,7 @@ export default function SearchPage() {
                       <svg className="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
                       </svg>
-                      <span className="text-xs font-semibold text-slate-500">{p.document?.votes ?? 0}</span>
+                      <span className="text-xs font-semibold text-slate-500">{p.votes ?? 0}</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1 mt-2">
@@ -120,7 +175,9 @@ export default function SearchPage() {
           {query && total === 0 && (
             <GlassCard className="p-16 text-center">
               <p className="text-slate-400 text-sm">No results for "<span className="text-slate-600">{query}</span>"</p>
-              <p className="text-slate-300 text-xs mt-1">Try different keywords</p>
+              <p className="text-slate-300 text-xs mt-1">
+                {activeTag ? 'Try clearing the tag filter or use different keywords' : 'Try different keywords'}
+              </p>
             </GlassCard>
           )}
 
