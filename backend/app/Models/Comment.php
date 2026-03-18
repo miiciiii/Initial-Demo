@@ -19,6 +19,8 @@ class Comment extends Model
         'body',
     ];
 
+    protected $appends = ['vote_score', 'user_vote'];
+
     public function thread(): BelongsTo
     {
         return $this->belongsTo(Thread::class);
@@ -47,5 +49,21 @@ class Comment extends Model
     public function voteScore(): int
     {
         return $this->votes()->sum('value');
+    }
+
+    public function getVoteScoreAttribute(): int
+    {
+        if ($this->relationLoaded('votes')) {
+            return (int) $this->votes->sum('value');
+        }
+        return (int) $this->votes()->sum('value');
+    }
+
+    public function getUserVoteAttribute(): ?int
+    {
+        if (!auth()->check() || !$this->relationLoaded('votes')) {
+            return null;
+        }
+        return optional($this->votes->firstWhere('user_id', auth()->id()))->value;
     }
 }

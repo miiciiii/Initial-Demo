@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Protocol extends Model
 {
@@ -16,12 +17,10 @@ class Protocol extends Model
         'title',
         'content',
         'tags',
-        'rating',
     ];
 
     protected $casts = [
         'tags' => 'array',
-        'rating' => 'decimal:2',
     ];
 
     public function user(): BelongsTo
@@ -39,9 +38,13 @@ class Protocol extends Model
         return $this->hasMany(Review::class);
     }
 
-    public function recalculateRating(): void
+    public function votes(): MorphMany
     {
-        $avg = $this->reviews()->avg('rating') ?? 0;
-        $this->update(['rating' => round($avg, 2)]);
+        return $this->morphMany(Vote::class, 'votable');
+    }
+
+    public function voteScore(): int
+    {
+        return (int) $this->votes()->sum('value');
     }
 }

@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import api from '../api/axios'
-import LoadingSpinner from '../components/LoadingSpinner'
+import { SearchSkeleton } from '../components/Skeleton'
 import Badge from '../components/Badge'
-import StarRating from '../components/StarRating'
 import GlassCard from '../components/GlassCard'
 
 export default function SearchPage() {
@@ -75,7 +74,7 @@ export default function SearchPage() {
         ))}
       </div>
 
-      {loading ? <LoadingSpinner /> : (
+      {loading ? <SearchSkeleton /> : (
         <>
           {query && <p className="text-xs text-slate-400 px-1">{total} result{total !== 1 ? 's' : ''} for "<span className="text-slate-600 font-medium">{query}</span>"</p>}
 
@@ -87,7 +86,12 @@ export default function SearchPage() {
                   className="block bg-white/70 backdrop-blur-xl border border-gray-200/50 rounded-2xl p-4 hover:bg-white/90 hover:shadow-md hover:border-indigo-200/50 transition-all duration-200">
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="text-sm font-semibold text-slate-900 hover:text-indigo-700">{p.title}</h3>
-                    <StarRating rating={p.rating || 0} />
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <svg className="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                      </svg>
+                      <span className="text-xs font-semibold text-slate-500">{p.document?.votes ?? 0}</span>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-1 mt-2">
                     {(p.tags || []).map(tag => <Badge key={tag} tag={tag} />)}

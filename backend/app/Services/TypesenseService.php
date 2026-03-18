@@ -14,9 +14,9 @@ class TypesenseService
     {
         $this->client = new Client([
             'api_key' => config('typesense.api_key'),
-            'nodes' => [[
-                'host' => config('typesense.host'),
-                'port' => config('typesense.port'),
+            'nodes'   => [[
+                'host'     => config('typesense.host'),
+                'port'     => config('typesense.port'),
                 'protocol' => config('typesense.protocol'),
             ]],
             'connection_timeout_seconds' => 2,
@@ -35,13 +35,12 @@ class TypesenseService
             $this->client->collections['protocols']->retrieve();
         } catch (\Exception) {
             $this->client->collections->create([
-                'name' => 'protocols',
+                'name'   => 'protocols',
                 'fields' => [
-                    ['name' => 'id', 'type' => 'string'],
-                    ['name' => 'title', 'type' => 'string'],
-                    ['name' => 'tags', 'type' => 'string[]', 'facet' => true],
-                    ['name' => 'rating', 'type' => 'float'],
-                    ['name' => 'votes', 'type' => 'int32'],
+                    ['name' => 'id',         'type' => 'string'],
+                    ['name' => 'title',      'type' => 'string'],
+                    ['name' => 'tags',       'type' => 'string[]', 'facet' => true],
+                    ['name' => 'votes',      'type' => 'int32'],
                     ['name' => 'created_at', 'type' => 'int64'],
                 ],
                 'default_sorting_field' => 'created_at',
@@ -55,13 +54,13 @@ class TypesenseService
             $this->client->collections['threads']->retrieve();
         } catch (\Exception) {
             $this->client->collections->create([
-                'name' => 'threads',
+                'name'   => 'threads',
                 'fields' => [
-                    ['name' => 'id', 'type' => 'string'],
-                    ['name' => 'title', 'type' => 'string'],
-                    ['name' => 'body', 'type' => 'string'],
-                    ['name' => 'tags', 'type' => 'string[]', 'facet' => true],
-                    ['name' => 'votes', 'type' => 'int32'],
+                    ['name' => 'id',         'type' => 'string'],
+                    ['name' => 'title',      'type' => 'string'],
+                    ['name' => 'body',       'type' => 'string'],
+                    ['name' => 'tags',       'type' => 'string[]', 'facet' => true],
+                    ['name' => 'votes',      'type' => 'int32'],
                     ['name' => 'created_at', 'type' => 'int64'],
                 ],
                 'default_sorting_field' => 'created_at',
@@ -72,18 +71,13 @@ class TypesenseService
     public function indexProtocol(Protocol $protocol): void
     {
         try {
-            $voteScore = \DB::table('votes')
-                ->join('threads', 'threads.id', '=', 'votes.votable_id')
-                ->where('threads.protocol_id', $protocol->id)
-                ->where('votes.votable_type', 'App\\Models\\Thread')
-                ->sum('votes.value');
+            $voteScore = $protocol->votes()->sum('value');
 
             $this->client->collections['protocols']->documents->upsert([
-                'id' => (string) $protocol->id,
-                'title' => $protocol->title,
-                'tags' => $protocol->tags ?? [],
-                'rating' => (float) $protocol->rating,
-                'votes' => (int) $voteScore,
+                'id'         => (string) $protocol->id,
+                'title'      => $protocol->title,
+                'tags'       => $protocol->tags ?? [],
+                'votes'      => (int) $voteScore,
                 'created_at' => $protocol->created_at->timestamp,
             ]);
         } catch (\Exception $e) {
@@ -106,11 +100,11 @@ class TypesenseService
             $voteScore = $thread->votes()->sum('value');
 
             $this->client->collections['threads']->documents->upsert([
-                'id' => (string) $thread->id,
-                'title' => $thread->title,
-                'body' => $thread->body,
-                'tags' => $thread->tags ?? [],
-                'votes' => (int) $voteScore,
+                'id'         => (string) $thread->id,
+                'title'      => $thread->title,
+                'body'       => $thread->body,
+                'tags'       => $thread->tags ?? [],
+                'votes'      => (int) $voteScore,
                 'created_at' => $thread->created_at->timestamp,
             ]);
         } catch (\Exception $e) {
@@ -129,8 +123,7 @@ class TypesenseService
 
     public function search(string $query, array $tags = [], string $sort = 'recent', ?string $type = null): array
     {
-        $sortBy = match($sort) {
-            'rated'   => 'rating:desc',
+        $sortBy = match ($sort) {
             'upvoted' => 'votes:desc',
             default   => 'created_at:desc',
         };
@@ -141,9 +134,9 @@ class TypesenseService
         }
 
         $searchParams = [
-            'q' => $query,
+            'q'        => $query,
             'query_by' => 'title',
-            'sort_by' => $sortBy,
+            'sort_by'  => $sortBy,
         ];
         if ($filterBy) {
             $searchParams['filter_by'] = $filterBy;
@@ -155,7 +148,7 @@ class TypesenseService
             try {
                 $r = $this->client->collections['protocols']->documents->search($searchParams);
                 $results['protocols'] = $r['hits'] ?? [];
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 $results['protocols'] = [];
             }
         }
@@ -165,7 +158,7 @@ class TypesenseService
                 $threadParams = array_merge($searchParams, ['query_by' => 'title,body']);
                 $r = $this->client->collections['threads']->documents->search($threadParams);
                 $results['threads'] = $r['hits'] ?? [];
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 $results['threads'] = [];
             }
         }
@@ -175,10 +168,14 @@ class TypesenseService
 
     public function reindexAll(): array
     {
+        // Drop and recreate protocols collection to apply schema changes
+        try { $this->client->collections['protocols']->delete(); } catch (\Exception) {}
+        try { $this->client->collections['threads']->delete(); } catch (\Exception) {}
+
         $this->ensureCollections();
 
         $protocolCount = 0;
-        Protocol::with('reviews')->chunk(100, function ($protocols) use (&$protocolCount) {
+        Protocol::chunk(100, function ($protocols) use (&$protocolCount) {
             foreach ($protocols as $protocol) {
                 $this->indexProtocol($protocol);
                 $protocolCount++;

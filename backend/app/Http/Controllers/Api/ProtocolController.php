@@ -18,7 +18,7 @@ class ProtocolController extends Controller
     {
         $query = Protocol::with('user')
             ->withCount('reviews', 'threads')
-            ->withSum('reviews', 'rating');
+            ->withSum('votes', 'value');
 
         if ($request->filled('search')) {
             $query->where('title', 'like', '%' . $request->search . '%');
@@ -34,13 +34,11 @@ class ProtocolController extends Controller
         $sort = $request->get('sort', 'recent');
         match ($sort) {
             'reviewed' => $query->orderByDesc('reviews_count'),
-            'rated'    => $query->orderByDesc('rating'),
             'upvoted'  => $query->orderByDesc(
                 \DB::table('votes')
                     ->selectRaw('COALESCE(SUM(value), 0)')
-                    ->join('threads', 'threads.id', '=', 'votes.votable_id')
-                    ->whereColumn('threads.protocol_id', 'protocols.id')
-                    ->where('votes.votable_type', 'App\\Models\\Thread')
+                    ->whereColumn('votable_id', 'protocols.id')
+                    ->where('votable_type', 'App\\Models\\Protocol')
             ),
             default    => $query->latest(),
         };
@@ -49,18 +47,23 @@ class ProtocolController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $protocols,
+            'data'   => $protocols,
         ]);
     }
 
     public function show(Protocol $protocol): JsonResponse
     {
-        $protocol->load('user', 'threads.user', 'reviews.user');
+        $protocol->load('user', 'threads.user', 'reviews.user', 'votes');
         $protocol->loadCount('reviews', 'threads');
 
         return response()->json([
             'status' => 'success',
-            'data' => $protocol,
+            'data'   => array_merge($protocol->toArray(), [
+                'vote_score' => (int) $protocol->votes->sum('value'),
+                'user_vote'  => auth()->check()
+                    ? optional($protocol->votes->firstWhere('user_id', auth()->id()))->value
+                    : null,
+            ]),
         ]);
     }
 
@@ -68,15 +71,15 @@ class ProtocolController extends Controller
     {
         $protocol = Protocol::create([
             ...$request->validated(),
-            'user_id' => 1, // TODO: replace with auth()->id() when auth is added
+            'user_id' => auth()->id(),
         ]);
 
         $this->typesense->indexProtocol($protocol);
 
         return response()->json([
-            'status' => 'success',
+            'status'  => 'success',
             'message' => 'Protocol created.',
-            'data' => $protocol->load('user'),
+            'data'    => $protocol->load('user'),
         ], 201);
     }
 
@@ -86,9 +89,9 @@ class ProtocolController extends Controller
         $this->typesense->indexProtocol($protocol->fresh());
 
         return response()->json([
-            'status' => 'success',
+            'status'  => 'success',
             'message' => 'Protocol updated.',
-            'data' => $protocol->fresh()->load('user'),
+            'data'    => $protocol->fresh()->load('user'),
         ]);
     }
 
@@ -98,8 +101,8 @@ class ProtocolController extends Controller
         $protocol->delete();
 
         return response()->json([
-            'status' => 'success',
+            'status'  => 'success',
             'message' => 'Protocol deleted.',
-        ], 200);
+        ]);
     }
 }

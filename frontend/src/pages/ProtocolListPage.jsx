@@ -3,15 +3,16 @@ import { useSearchParams } from 'react-router-dom'
 import api from '../api/axios'
 import ProtocolCard from '../components/ProtocolCard'
 import Pagination from '../components/Pagination'
-import LoadingSpinner from '../components/LoadingSpinner'
+import { ProtocolListSkeleton } from '../components/Skeleton'
 import ErrorMessage from '../components/ErrorMessage'
 import Button from '../components/Button'
 import GlassCard from '../components/GlassCard'
 
 const SORT_OPTIONS = [
-  { value: 'all', label: 'All Protocols' },
-  { value: 'recent', label: 'Recent' },
+  { value: 'all',      label: 'All Protocols' },
+  { value: 'recent',   label: 'Recent' },
   { value: 'reviewed', label: 'Most Reviewed' },
+  { value: 'upvoted',  label: 'Most Upvoted' },
 ]
 
 export default function ProtocolListPage() {
@@ -62,11 +63,11 @@ export default function ProtocolListPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Page Header */}
       <div className="pt-2 pb-1">
-        <h1 className="text-xl font-bold text-slate-900">Protocols</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Browse and discuss research protocols</p>
+        <h1 className="text-3xl font-bold text-slate-900">Protocols</h1>
+        <p className="text-base text-slate-500 mt-1">Browse and discuss research protocols</p>
       </div>
 
       {/* Create Form */}
@@ -92,10 +93,10 @@ export default function ProtocolListPage() {
       )}
 
       {/* Search + Filter bar */}
-      <GlassCard className="p-3">
-        <div className="flex items-center gap-2">
+      <GlassCard className="p-4">
+        <div className="flex items-center gap-3">
           <div className="relative flex-1">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -103,13 +104,13 @@ export default function ProtocolListPage() {
               onChange={e => { setSearch(e.target.value); setPage(1) }}
               onKeyDown={e => e.key === 'Enter' && fetchProtocols()}
               placeholder="Search protocols..."
-              className="w-full pl-9 pr-3 py-2 bg-slate-50/80 border border-slate-200/60 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:bg-white transition-all"
+              className="w-full pl-10 pr-3 py-3 bg-slate-50/80 border border-slate-200/60 rounded-xl text-base text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:bg-white transition-all"
             />
           </div>
-          <div className="flex gap-1 flex-shrink-0">
+          <div className="flex gap-1.5 flex-shrink-0">
             {SORT_OPTIONS.map(o => (
               <button key={o.value} onClick={() => { setSort(o.value); setPage(1) }}
-                className={`px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-150 ${sort === o.value ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-800'}`}>
+                className={`px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-150 ${sort === o.value ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-800'}`}>
                 {o.label}
               </button>
             ))}
@@ -118,9 +119,9 @@ export default function ProtocolListPage() {
       </GlassCard>
 
       {/* Content */}
-      {loading ? <LoadingSpinner /> : error ? <ErrorMessage message={error} /> : (
+      {loading ? <ProtocolListSkeleton /> : error ? <ErrorMessage message={error} /> : (
         <>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {protocols.map(p => <ProtocolCard key={p.id} protocol={p} />)}
           </div>
           {protocols.length === 0 && (

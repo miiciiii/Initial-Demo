@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import api from '../api/axios'
 import Badge from '../components/Badge'
-import StarRating from '../components/StarRating'
-import LoadingSpinner from '../components/LoadingSpinner'
+import VoteButtons from '../components/VoteButtons'
+import { ProtocolDetailSkeleton } from '../components/Skeleton'
 import ErrorMessage from '../components/ErrorMessage'
 import Button from '../components/Button'
 import GlassCard from '../components/GlassCard'
@@ -13,7 +13,7 @@ export default function ProtocolDetailPage() {
   const [protocol, setProtocol] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [reviewForm, setReviewForm] = useState({ rating: 5, feedback: '' })
+  const [reviewForm, setReviewForm] = useState({ feedback: '' })
   const [threadForm, setThreadForm] = useState({ title: '', body: '', tags: '' })
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [showThreadForm, setShowThreadForm] = useState(false)
@@ -34,7 +34,7 @@ export default function ProtocolDetailPage() {
     e.preventDefault(); setSubmitting(true)
     try {
       await api.post('/reviews', { protocol_id: Number(id), ...reviewForm })
-      setReviewForm({ rating: 5, feedback: '' }); setShowReviewForm(false); fetchProtocol()
+      setReviewForm({ feedback: '' }); setShowReviewForm(false); fetchProtocol()
     } catch { alert('Failed to submit review.') }
     finally { setSubmitting(false) }
   }
@@ -53,7 +53,7 @@ export default function ProtocolDetailPage() {
 
   const inputClass = "w-full bg-slate-50/80 border border-slate-200/60 rounded-xl px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:bg-white transition-all"
 
-  if (loading) return <LoadingSpinner />
+  if (loading) return <ProtocolDetailSkeleton />
   if (error) return <ErrorMessage message={error} />
   if (!protocol) return null
 
@@ -81,7 +81,9 @@ export default function ProtocolDetailPage() {
             <p className="text-sm font-medium text-slate-800">{protocol.user?.name}</p>
             <p className="text-xs text-slate-400">{new Date(protocol.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
-          <div className="ml-auto"><StarRating rating={protocol.rating || 0} size="md" /></div>
+          <div className="ml-auto">
+            <VoteButtons votableId={protocol.id} votableType="protocol" initialScore={protocol.vote_score ?? 0} initialVote={protocol.user_vote ?? null} />
+          </div>
         </div>
         <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{protocol.content}</p>
       </GlassCard>
@@ -98,16 +100,7 @@ export default function ProtocolDetailPage() {
         {showReviewForm && (
           <GlassCard className="p-4 mb-3">
             <form onSubmit={submitReview} className="space-y-3">
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-slate-600">Rating</span>
-                <div className="flex gap-1">
-                  {[1,2,3,4,5].map(n => (
-                    <button key={n} type="button" onClick={() => setReviewForm({...reviewForm, rating: n})}
-                      className={`text-lg transition-all ${n <= reviewForm.rating ? 'text-amber-400' : 'text-slate-200 hover:text-amber-300'}`}>★</button>
-                  ))}
-                </div>
-              </div>
-              <textarea value={reviewForm.feedback} onChange={e => setReviewForm({...reviewForm, feedback: e.target.value})}
+              <textarea required value={reviewForm.feedback} onChange={e => setReviewForm({ feedback: e.target.value })}
                 placeholder="Share your thoughts on this protocol..." rows={3} className={`${inputClass} resize-none`} />
               <Button type="submit" variant="gradient" size="sm" disabled={submitting}>{submitting ? 'Submitting...' : 'Submit Review'}</Button>
             </form>
@@ -124,7 +117,6 @@ export default function ProtocolDetailPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-semibold text-slate-800">{r.user?.name}</span>
-                    <StarRating rating={r.rating} />
                     <span className="text-xs text-slate-300">·</span>
                     <span className="text-xs text-slate-400">{new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   </div>

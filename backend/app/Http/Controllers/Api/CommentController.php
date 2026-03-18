@@ -13,7 +13,7 @@ class CommentController extends Controller
     {
         $comment = Comment::create([
             ...$request->validated(),
-            'user_id' => 1, // TODO: replace with auth()->id()
+            'user_id' => auth()->id(),
         ]);
 
         return response()->json([
@@ -28,8 +28,7 @@ class CommentController extends Controller
         $comments = Comment::with('user', 'votes', 'replies')
             ->whereNull('parent_id')
             ->where('thread_id', $threadId)
-            ->get()
-            ->map(fn($c) => array_merge($c->toArray(), ['vote_score' => $c->voteScore()]));
+            ->get();
 
         return response()->json([
             'status' => 'success',

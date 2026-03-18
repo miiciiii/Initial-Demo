@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Comment;
 use App\Models\Protocol;
-use App\Models\Review;
 use App\Models\Thread;
 use App\Models\User;
 use App\Models\Vote;
@@ -40,14 +39,17 @@ class DatabaseSeeder extends Seeder
             });
         });
 
-        // Create 2–4 reviews per protocol
+        // Create votes on protocols
         $protocols->each(function (Protocol $protocol) use ($users) {
-            $count = rand(2, 4);
-            $reviewUsers = $users->random($count);
-            Review::factory($count)
-                ->recycle($reviewUsers)
-                ->create(['protocol_id' => $protocol->id]);
-            $protocol->recalculateRating();
+            $voters = $users->random(rand(3, 7));
+            foreach ($voters as $user) {
+                Vote::create([
+                    'user_id'      => $user->id,
+                    'votable_id'   => $protocol->id,
+                    'votable_type' => 'App\\Models\\Protocol',
+                    'value'        => fake()->randomElement([1, -1]),
+                ]);
+            }
         });
 
         // Create votes on threads
@@ -55,10 +57,23 @@ class DatabaseSeeder extends Seeder
             $voters = $users->random(rand(2, 6));
             foreach ($voters as $user) {
                 Vote::create([
-                    'user_id' => $user->id,
-                    'votable_id' => $thread->id,
+                    'user_id'      => $user->id,
+                    'votable_id'   => $thread->id,
                     'votable_type' => 'App\\Models\\Thread',
-                    'value' => fake()->randomElement([1, -1]),
+                    'value'        => fake()->randomElement([1, -1]),
+                ]);
+            }
+        });
+
+        // Create votes on comments (top-level only to keep seeder light)
+        Comment::whereNull('parent_id')->get()->each(function (Comment $comment) use ($users) {
+            $voters = $users->random(rand(1, 4));
+            foreach ($voters as $user) {
+                Vote::create([
+                    'user_id'      => $user->id,
+                    'votable_id'   => $comment->id,
+                    'votable_type' => 'App\\Models\\Comment',
+                    'value'        => fake()->randomElement([1, -1]),
                 ]);
             }
         });

@@ -10,11 +10,6 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class ProtocolFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     private static array $titles = [
         'Standard Protocol for Handling Biological Samples in Clinical Trials',
         'Guidelines for Data Collection and Management in Medical Research',
@@ -45,13 +40,12 @@ class ProtocolFactory extends Factory
     {
         return [
             'user_id' => \App\Models\User::factory(),
-            'title' => fake()->randomElement(self::$titles),
+            'title'   => fake()->randomElement(self::$titles),
             'content' => fake()->randomElement(self::$contents),
-            'tags' => fake()->randomElements(
+            'tags'    => fake()->randomElements(
                 ['biology', 'chemistry', 'physics', 'medicine', 'engineering', 'ethics', 'data', 'research', 'clinical', 'lab'],
                 fake()->numberBetween(1, 4)
             ),
-            'rating' => 0,
         ];
     }
 }

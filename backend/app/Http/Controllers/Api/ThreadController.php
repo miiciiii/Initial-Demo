@@ -21,7 +21,10 @@ class ThreadController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => array_merge($thread->toArray(), [
-                'vote_score' => $thread->voteScore(),
+                'vote_score' => (int) $thread->votes->sum('value'),
+                'user_vote'  => auth()->check()
+                    ? optional($thread->votes->firstWhere('user_id', auth()->id()))->value
+                    : null,
             ]),
         ]);
     }
@@ -30,7 +33,7 @@ class ThreadController extends Controller
     {
         $thread = Thread::create([
             ...$request->validated(),
-            'user_id' => 1, // TODO: replace with auth()->id()
+            'user_id' => auth()->id(),
         ]);
 
         $this->typesense->indexThread($thread);

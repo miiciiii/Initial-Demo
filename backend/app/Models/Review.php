@@ -13,12 +13,7 @@ class Review extends Model
     protected $fillable = [
         'protocol_id',
         'user_id',
-        'rating',
         'feedback',
-    ];
-
-    protected $casts = [
-        'rating' => 'integer',
     ];
 
     public function protocol(): BelongsTo

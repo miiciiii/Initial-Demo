@@ -4,7 +4,7 @@ import api from '../api/axios'
 import VoteButtons from '../components/VoteButtons'
 import CommentItem from '../components/CommentItem'
 import Badge from '../components/Badge'
-import LoadingSpinner from '../components/LoadingSpinner'
+import { ThreadPageSkeleton } from '../components/Skeleton'
 import ErrorMessage from '../components/ErrorMessage'
 import Button from '../components/Button'
 import GlassCard from '../components/GlassCard'
@@ -44,7 +44,7 @@ export default function ThreadPage() {
     finally { setSubmitting(false) }
   }
 
-  if (loading) return <LoadingSpinner />
+  if (loading) return <ThreadPageSkeleton />
   if (error) return <ErrorMessage message={error} />
   if (!thread) return null
 
@@ -62,7 +62,7 @@ export default function ThreadPage() {
       <GlassCard className="p-6">
         <div className="flex items-start justify-between gap-4 mb-4">
           <h1 className="text-xl font-bold text-slate-900 leading-snug flex-1">{thread.title}</h1>
-          <VoteButtons votableId={thread.id} votableType="thread" initialScore={thread.vote_score || 0} />
+          <VoteButtons votableId={thread.id} votableType="thread" initialScore={thread.vote_score || 0} initialVote={thread.user_vote ?? null} />
         </div>
         <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap mb-4">{thread.body}</p>
         {(thread.tags || []).length > 0 && (

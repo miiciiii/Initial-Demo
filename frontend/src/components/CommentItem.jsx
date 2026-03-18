@@ -35,7 +35,7 @@ export default function CommentItem({ comment, depth = 0 }) {
             </div>
             <p className="text-sm text-slate-700 leading-relaxed">{comment.body}</p>
             <div className="flex items-center gap-2 mt-2">
-              <VoteButtons votableId={comment.id} votableType="comment" initialScore={comment.vote_score || 0} />
+              <VoteButtons votableId={comment.id} votableType="comment" initialScore={comment.vote_score || 0} initialVote={comment.user_vote ?? null} />
               {depth < 3 && (
                 <button onClick={() => setShowReply(!showReply)}
                   className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium px-2 py-1 rounded-lg hover:bg-indigo-50">

@@ -1,27 +1,50 @@
 import { useState } from 'react'
 import api from '../api/axios'
 
-export default function VoteButtons({ votableId, votableType, initialScore = 0 }) {
-  const [score, setScore] = useState(initialScore)
+export default function VoteButtons({ votableId, votableType, initialScore = 0, initialVote = null }) {
+  const [score, setScore] = useState(Number(initialScore))
+  const [voted, setVoted] = useState(initialVote)
   const [loading, setLoading] = useState(false)
-  const [voted, setVoted] = useState(null)
+  const [toast, setToast] = useState(null)
+
+  const showToast = (message) => {
+    setToast(message)
+    setTimeout(() => setToast(null), 2000)
+  }
 
   const vote = async (value) => {
     if (loading) return
+
+    // Optimistic update
+    const prevScore = score
+    const prevVoted = voted
+    const isUnvote = voted === value
+    const scoreDelta = isUnvote ? -value : voted !== null ? value - voted : value
+    setScore(score + scoreDelta)
+    setVoted(isUnvote ? null : value)
     setLoading(true)
+
     try {
       const res = await api.post('/votes', { votable_id: votableId, votable_type: votableType, value })
       setScore(res.data.data.score)
-      setVoted(voted === value ? null : value)
+      showToast(res.data.message)
     } catch (e) {
-      console.error(e)
+      // Revert on failure
+      setScore(prevScore)
+      setVoted(prevVoted)
+      showToast(e.response?.status === 401 ? 'Login to vote' : 'Failed to vote')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="flex items-center gap-1 bg-slate-50/80 backdrop-blur-sm border border-slate-200/60 rounded-2xl px-1 py-0.5">
+    <div className="relative flex flex-col items-center gap-0.5 bg-slate-50/80 backdrop-blur-sm border border-slate-200/60 rounded-2xl px-0.5 py-1">
+      {toast && (
+        <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-800 text-white text-xs px-2.5 py-1 rounded-lg shadow-lg z-10 pointer-events-none">
+          {toast}
+        </div>
+      )}
       <button onClick={() => vote(1)} disabled={loading}
         className={`p-1.5 rounded-xl transition-all duration-150 ${voted === 1 ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}`}>
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

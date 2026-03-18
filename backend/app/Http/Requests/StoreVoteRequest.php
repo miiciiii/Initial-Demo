@@ -24,7 +24,7 @@ class StoreVoteRequest extends FormRequest
     {
         return [
             'votable_id' => 'required|integer',
-            'votable_type' => 'required|string|in:thread,comment',
+            'votable_type' => 'required|string|in:protocol,thread,comment',
             'value' => 'required|integer|in:-1,1',
         ];
     }
