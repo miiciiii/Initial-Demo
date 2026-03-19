@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import api from '../api/axios'
 import ProtocolCard from '../components/ProtocolCard'
@@ -9,9 +9,8 @@ import Button from '../components/Button'
 import GlassCard from '../components/GlassCard'
 
 const SORT_OPTIONS = [
-  { value: 'all',      label: 'All Protocols' },
-  { value: 'recent',   label: 'Recent' },
-  { value: 'reviewed', label: 'Most Reviewed' },
+  { value: 'recent',   label: 'Most Recent' },
+  { value: 'reviewed', label: 'Most Reviews' },
   { value: 'upvoted',  label: 'Most Upvoted' },
 ]
 
@@ -22,18 +21,20 @@ export default function ProtocolListPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
-  const [sort, setSort] = useState('all')
+  const [sort, setSort] = useState('recent')
   const [page, setPage] = useState(1)
+  const debounceRef = useRef(null)
   const [showForm, setShowForm] = useState(searchParams.get('new') === '1')
   const [form, setForm] = useState({ title: '', content: '', tags: '' })
   const [submitting, setSubmitting] = useState(false)
 
-  const fetchProtocols = async () => {
+  const fetchProtocols = async (overrides = {}) => {
     setLoading(true)
     setError(null)
     try {
-      const params = { sort: sort === 'all' ? 'recent' : sort, page, per_page: 6 }
-      if (search) params.search = search
+      const params = { sort: overrides.sort ?? sort, page: overrides.page ?? page, per_page: 6 }
+      const q = overrides.search !== undefined ? overrides.search : search
+      if (q) params.search = q
       const res = await api.get('/protocols', { params })
       setProtocols(res.data.data.data)
       setMeta(res.data.data)
@@ -43,7 +44,13 @@ export default function ProtocolListPage() {
 
   useEffect(() => { fetchProtocols() }, [sort, page])
 
-  const handleSearch = (e) => { e.preventDefault(); setPage(1); fetchProtocols() }
+  const handleSearch = (e) => {
+    const val = e.target.value
+    setSearch(val)
+    setPage(1)
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => fetchProtocols({ search: val, page: 1 }), 300)
+  }
 
   const handleCreate = async (e) => {
     e.preventDefault()
@@ -101,8 +108,7 @@ export default function ProtocolListPage() {
             </svg>
             <input
               value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1) }}
-              onKeyDown={e => e.key === 'Enter' && fetchProtocols()}
+              onChange={handleSearch}
               placeholder="Search protocols..."
               className="w-full pl-10 pr-3 py-3 bg-slate-50/80 border border-slate-200/60 rounded-xl text-base text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:bg-white transition-all"
             />

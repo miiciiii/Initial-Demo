@@ -16,7 +16,7 @@ class SearchController extends Controller
         $request->validate([
             'q' => 'required|string|min:1',
             'tags' => 'nullable|string',
-            'sort' => 'nullable|string|in:recent,rated,upvoted',
+            'sort' => 'nullable|string|in:recent,upvoted',
             'type' => 'nullable|string|in:protocols,threads',
         ]);
 

@@ -21,7 +21,7 @@ export default function TopRatedPanel() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
           </svg>
         </div>
-        <h3 className="text-sm font-semibold text-slate-900">Most Upvoted</h3>
+        <h3 className="text-sm font-semibold text-slate-900">Top Rated</h3>
       </div>
 
       {loading ? (

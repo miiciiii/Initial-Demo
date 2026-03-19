@@ -97,7 +97,7 @@ export default function SearchPage() {
 
       {/* Sort pills */}
       <div className="flex gap-1.5 flex-wrap">
-        {[['recent', 'Recent'], ['rated', 'Top Rated'], ['upvoted', 'Most Upvoted']].map(([val, label]) => (
+        {[['recent', 'Recent'], ['upvoted', 'Most Upvoted']].map(([val, label]) => (
           <button key={val} onClick={() => handleSort(val)}
             className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-150 ${sort === val ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white/70 backdrop-blur-sm border border-slate-200/60 text-slate-500 hover:bg-white/90 hover:text-slate-800'}`}>
             {label}

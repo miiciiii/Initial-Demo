@@ -71,7 +71,7 @@ class TypesenseService
     public function indexProtocol(Protocol $protocol): void
     {
         try {
-            $voteScore = $protocol->votes()->sum('value');
+            $voteScore = $protocol->votes->sum('value');
 
             $this->client->collections['protocols']->documents->upsert([
                 'id'         => (string) $protocol->id,
@@ -97,7 +97,7 @@ class TypesenseService
     public function indexThread(Thread $thread): void
     {
         try {
-            $voteScore = $thread->votes()->sum('value');
+            $voteScore = $thread->votes->sum('value');
 
             $this->client->collections['threads']->documents->upsert([
                 'id'         => (string) $thread->id,
@@ -175,7 +175,7 @@ class TypesenseService
         $this->ensureCollections();
 
         $protocolCount = 0;
-        Protocol::chunk(100, function ($protocols) use (&$protocolCount) {
+        Protocol::with('votes')->chunk(100, function ($protocols) use (&$protocolCount) {
             foreach ($protocols as $protocol) {
                 $this->indexProtocol($protocol);
                 $protocolCount++;
