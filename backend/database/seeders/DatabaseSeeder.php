@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Comment;
 use App\Models\Protocol;
+use App\Models\Review;
 use App\Models\Thread;
 use App\Models\User;
 use App\Models\Vote;
@@ -37,6 +38,17 @@ class DatabaseSeeder extends Seeder
                         'parent_id' => $comment->id,
                     ]);
             });
+        });
+
+        // Create 2–4 reviews per protocol
+        $protocols->each(function (Protocol $protocol) use ($users) {
+            $reviewers = $users->random(rand(2, 4));
+            foreach ($reviewers as $user) {
+                Review::factory()->create([
+                    'protocol_id' => $protocol->id,
+                    'user_id'     => $user->id,
+                ]);
+            }
         });
 
         // Create votes on protocols
